@@ -1,0 +1,2 @@
+#set environment variable
+export TWITTER_NLP=path_to_TweetsGeocoding/twitter_nlp
