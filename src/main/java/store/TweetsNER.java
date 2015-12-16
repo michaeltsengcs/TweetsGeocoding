@@ -16,55 +16,56 @@ import java.util.List;
 
 public class TweetsNER {
 
-    Stream _tweetStream;
+    static Stream _tweetStream;
+    static UwNamedEntityTagger _tokenizer;
 
     public TweetsNER() {
         _tweetStream = new Stream();
+        _tokenizer = new UwNamedEntityTagger.Builder().setKeepPunctuation(true).build();
     }
 
     /**
      * @return HashMap: key is tweet text, value is all name entity including person, location, company...
      * @throws TwitterException
      */
-    public HashMap<String, List<String>> getTweetsNER() throws TwitterException {
+    public HashMap<Status, List<String>> getTweetsNER() throws TwitterException {
         List<Status> tweetStatus = _tweetStream.execute();
-
-        // Generate raw twitter text
-        List<String> famousTweets = new ArrayList<String>();
-        for (Status aStatus : tweetStatus) {
-            // Eliminate emoji and \t \n \r which will terminate python progam.
-            String str = new String(aStatus.getText());
-            str = str.replaceAll("[^\\x00-\\x7f-\\x80-\\xad]", "");
-            str = str.replaceAll("[\\t\\n\\r]"," ");
-            famousTweets.add(str);
+        HashMap<Status, List<String>> result = new HashMap<>();
+        for (int i = 0; i < tweetStatus.size(); ++i) {
+            Status status = tweetStatus.get(i);
+            List<String> geoNames = getSingleTweetNER(status);
+            result.put(status, geoNames);
         }
 
-        // Create a token stream.
-        UwNamedEntityTagger tokenizer = new UwNamedEntityTagger.Builder().setKeepPunctuation(true).build();
+        return result;
+    }
 
-        // Return all hash with key: tweet text, value: all kind of entity.
-        HashMap<String, List<String>> result = new HashMap<String, List<String>>();
-        for (String tweet : famousTweets) {
-            List<NamedEntityTypeAttribute> tokSeq = tokenizer.tokenize(tweet);
-            List<String> geoNames = new ArrayList<String>();
-            boolean isBegin = false;
-            String oneName = new String();
-            for (NamedEntityTypeAttribute tok : tokSeq) {
-                if (tok.getType().name.contains("B-") || tok.getType().name.contains("I-")) {
-                    oneName += tok.getToken() + " ";
-                    isBegin = true;
-                } else {
-                    if (isBegin) {
-                        geoNames.add(oneName);
-                        isBegin = false;
-                    }
+
+    public List<String> getSingleTweetNER(Status status) throws TwitterException {
+        assert(status.getText() != null);
+
+        // Eliminate emoji and \t \n \r which will terminate python progam.
+        String tweet = status.getText();
+        tweet = tweet.replaceAll("[^\\x00-\\x7f-\\x80-\\xad]", "");
+        tweet = tweet.replaceAll("[\\t\\n\\r]"," ");
+
+        List<NamedEntityTypeAttribute> tokSeq = _tokenizer.tokenize(tweet);
+        List<String> geoNames = new ArrayList<String>();
+        boolean isBegin = false;
+        String oneName = "";
+        for (NamedEntityTypeAttribute tok : tokSeq) {
+            if ((tok.getType().name.contains("B-") || tok.getType().name.contains("I-")) && tok.getType().name.contains("geo")) {
+                oneName += tok.getToken() + " ";
+                isBegin = true;
+            } else {
+                if (isBegin) {
+                    String tmpStr = oneName.substring(0, oneName.length() - 1);
+                    oneName = "";
+                    geoNames.add(tmpStr);
+                    isBegin = false;
                 }
             }
-
-            if (!geoNames.isEmpty()) {
-                result.put(tweet, geoNames);
-            }
         }
-        return result;
+        return geoNames;
     }
 }

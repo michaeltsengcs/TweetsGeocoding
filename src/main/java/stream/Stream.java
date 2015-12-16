@@ -1,5 +1,10 @@
 package stream;
 
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import store.MongoDB;
+import store.TweetSerialize;
+import store.TweetsNER;
 import twitter4j.*;
 import java.util.*;
 /**

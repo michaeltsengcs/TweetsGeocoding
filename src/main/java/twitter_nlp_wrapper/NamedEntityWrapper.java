@@ -18,14 +18,14 @@ public class NamedEntityWrapper {
 				System.exit(-1);
 			}
 			builder.redirectErrorStream(true);
-			builder.command(System.getenv("TWITTER_NLP") + "/python/ner/extractEntities2.py", "--classify");
+			builder.command(System.getenv("TWITTER_NLP") + "/python/ner/extractEntities2.py", "--classify", "--pos", "--chunk");
 
 			//builder.command(System.getenv("TWITTER_NLP") + "/python/ner/test.py");
 			this.p = builder.start();
 			this.stdInput  = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			this.stdOutput = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
 			this.stdErr    = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(-1);
 		}
